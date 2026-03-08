@@ -2,26 +2,73 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Heart, Calendar, Users, Cake, Star } from "lucide-react";
+import { ArrowRight, ArrowLeft, Heart, Calendar, Users, Cake, Star, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function CriarPresente() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
-  const [ocasião, setOcasião] = useState("casal"); // Guarda o tipo de presente
-
-  // Variáveis de animação do Framer Motion
-  const slideVariants = {
-    hidden: { x: 50, opacity: 0 },
-    visible: { x: 0, opacity: 1, transition: { duration: 0.4, ease: "easeOut" } },
-    exit: { x: -50, opacity: 0, transition: { duration: 0.3 } }
-  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estado para capturar todos os dados do formulário
+  const [formData, setFormData] = useState({
+    ocasião: "casal",
+    nome_criador: "",
+    nome_presenteado: "",
+    data_inicio: "",
+  });
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 4));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
-  // Textos dinâmicos baseados na escolha do usuário
+  // Função para salvar os dados via API segura
+  const handleFinalizar = async () => {
+    if (!formData.nome_criador || !formData.nome_presenteado) {
+      alert("Por favor, preencha os nomes antes de continuar.");
+      setStep(2);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Gerar um slug temporário baseado nos nomes (ex: joao-e-maria-123)
+      const slugBase = `${formData.nome_criador}-${formData.nome_presenteado}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "-");
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const slugFinal = `${slugBase}-${randomSuffix}`;
+
+      const response = await fetch("/api/homenagens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          slug: slugFinal,
+          tipo_relacao: formData.ocasião,
+          status_pagamento: "pendente"
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.sucesso) {
+        // Redireciona para o checkout levando o slug na URL
+        router.push(`/pagamento?slug=${data.slug}`);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error("Erro ao salvar:", error);
+      alert("Ops! Tivemos um problema ao salvar seu presente. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const getTextosDinamicos = () => {
-    switch (ocasião) {
+    switch (formData.ocasião) {
       case "amizade":
         return { tituloNomes: "Quem é sua dupla?", labelAmor: "Nome do amigo(a)", placeholder: "Ex: João", tituloData: "Desde quando são amigos?", icone: Users };
       case "aniversario":
@@ -39,12 +86,10 @@ export default function CriarPresente() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Luz de fundo decorativa */}
       <div className="absolute top-10 right-10 w-72 h-72 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="w-full max-w-md z-10 flex flex-col h-[85vh] justify-between">
         
-        {/* Cabeçalho e Barra de Progresso */}
         <div className="space-y-6 mt-8">
           <div className="flex items-center justify-between">
             <Link href="/" className="text-slate-400 hover:text-white transition-colors">Cancelar</Link>
@@ -61,84 +106,78 @@ export default function CriarPresente() {
           </div>
         </div>
 
-        {/* Área do Formulário Animado */}
         <div className="flex-1 relative mt-12">
           <AnimatePresence mode="wait">
             
-            {/* PASSO 1: Escolha a Ocasião */}
             {step === 1 && (
-              <motion.div key="step1" variants={slideVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+              <motion.div key="step1" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
                 <h2 className="text-2xl font-bold text-white mb-6">Qual é o motivo da homenagem?</h2>
-                
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Botão Casal */}
-                  <button onClick={() => setOcasião("casal")} className={`p-6 rounded-2xl flex flex-col items-center gap-3 transition-all ${ocasião === "casal" ? "neu-pressed border border-purple-500/50" : "neu-panel hover:bg-slate-800"}`}>
-                    <Heart className={ocasião === "casal" ? "text-purple-400" : "text-slate-400"} size={32} />
-                    <span className={ocasião === "casal" ? "text-white font-medium" : "text-slate-400"}>Casal</span>
-                  </button>
-
-                  {/* Botão Amizade */}
-                  <button onClick={() => setOcasião("amizade")} className={`p-6 rounded-2xl flex flex-col items-center gap-3 transition-all ${ocasião === "amizade" ? "neu-pressed border border-purple-500/50" : "neu-panel hover:bg-slate-800"}`}>
-                    <Users className={ocasião === "amizade" ? "text-purple-400" : "text-slate-400"} size={32} />
-                    <span className={ocasião === "amizade" ? "text-white font-medium" : "text-slate-400"}>Amizade</span>
-                  </button>
-
-                  {/* Botão Aniversário */}
-                  <button onClick={() => setOcasião("aniversario")} className={`p-6 rounded-2xl flex flex-col items-center gap-3 transition-all ${ocasião === "aniversario" ? "neu-pressed border border-purple-500/50" : "neu-panel hover:bg-slate-800"}`}>
-                    <Cake className={ocasião === "aniversario" ? "text-purple-400" : "text-slate-400"} size={32} />
-                    <span className={ocasião === "aniversario" ? "text-white font-medium" : "text-slate-400"}>Aniversário</span>
-                  </button>
-
-                  {/* Botão Família */}
-                  <button onClick={() => setOcasião("familia")} className={`p-6 rounded-2xl flex flex-col items-center gap-3 transition-all ${ocasião === "familia" ? "neu-pressed border border-purple-500/50" : "neu-panel hover:bg-slate-800"}`}>
-                    <Star className={ocasião === "familia" ? "text-purple-400" : "text-slate-400"} size={32} />
-                    <span className={ocasião === "familia" ? "text-white font-medium" : "text-slate-400"}>Família</span>
-                  </button>
+                  {["casal", "amizade", "aniversario", "familia"].map((op) => (
+                    <button 
+                      key={op}
+                      onClick={() => setFormData({ ...formData, ocasião: op })} 
+                      className={`p-6 rounded-2xl flex flex-col items-center gap-3 transition-all ${formData.ocasião === op ? "neu-pressed border border-purple-500/50" : "neu-panel hover:bg-slate-800"}`}
+                    >
+                      {op === "casal" && <Heart className={formData.ocasião === op ? "text-purple-400" : "text-slate-400"} size={32} />}
+                      {op === "amizade" && <Users className={formData.ocasião === op ? "text-purple-400" : "text-slate-400"} size={32} />}
+                      {op === "aniversario" && <Cake className={formData.ocasião === op ? "text-purple-400" : "text-slate-400"} size={32} />}
+                      {op === "familia" && <Star className={formData.ocasião === op ? "text-purple-400" : "text-slate-400"} size={32} />}
+                      <span className={formData.ocasião === op ? "text-white font-medium capitalize" : "text-slate-400 capitalize"}>{op}</span>
+                    </button>
+                  ))}
                 </div>
               </motion.div>
             )}
 
-            {/* PASSO 2: Nomes (Dinâmico) */}
             {step === 2 && (
-              <motion.div key="step2" variants={slideVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+              <motion.div key="step2" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
                 <div className="flex items-center gap-3 mb-8">
-                  <div className="p-3 bg-slate-800 rounded-2xl neu-panel">
-                    <IconeDinamico className="text-purple-400" size={24} />
-                  </div>
+                  <div className="p-3 bg-slate-800 rounded-2xl neu-panel"><IconeDinamico className="text-purple-400" size={24} /></div>
                   <h2 className="text-2xl font-bold text-white">{textos.tituloNomes}</h2>
                 </div>
-
                 <div className="space-y-4">
                   <div>
                     <label className="block text-slate-400 text-sm mb-2 ml-1">Seu nome</label>
-                    <input type="text" className="neu-pressed w-full p-4 text-white outline-none focus:ring-2 focus:ring-purple-500/50 transition-all" placeholder="Ex: Éricles" />
+                    <input 
+                      type="text" 
+                      value={formData.nome_criador}
+                      onChange={(e) => setFormData({...formData, nome_criador: e.target.value})}
+                      className="neu-pressed w-full p-4 text-white outline-none focus:ring-2 focus:ring-purple-500/50 transition-all" 
+                      placeholder="Ex: Éricles" 
+                    />
                   </div>
                   <div>
                     <label className="block text-slate-400 text-sm mb-2 ml-1">{textos.labelAmor}</label>
-                    <input type="text" className="neu-pressed w-full p-4 text-white outline-none focus:ring-2 focus:ring-purple-500/50 transition-all" placeholder={textos.placeholder} />
+                    <input 
+                      type="text" 
+                      value={formData.nome_presenteado}
+                      onChange={(e) => setFormData({...formData, nome_presenteado: e.target.value})}
+                      className="neu-pressed w-full p-4 text-white outline-none focus:ring-2 focus:ring-purple-500/50 transition-all" 
+                      placeholder={textos.placeholder} 
+                    />
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* PASSO 3: Data (Dinâmico) */}
             {step === 3 && (
-              <motion.div key="step3" variants={slideVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+              <motion.div key="step3" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
                 <div className="flex items-center gap-3 mb-8">
-                  <div className="p-3 bg-slate-800 rounded-2xl neu-panel">
-                    <Calendar className="text-purple-400" size={24} />
-                  </div>
+                  <div className="p-3 bg-slate-800 rounded-2xl neu-panel"><Calendar className="text-purple-400" size={24} /></div>
                   <h2 className="text-2xl font-bold text-white">{textos.tituloData}</h2>
                 </div>
-                <div>
-                  <input type="date" className="neu-pressed w-full p-4 text-white outline-none focus:ring-2 focus:ring-purple-500/50 transition-all color-scheme-dark" />
-                </div>
+                <input 
+                  type="date" 
+                  value={formData.data_inicio}
+                  onChange={(e) => setFormData({...formData, data_inicio: e.target.value})}
+                  className="neu-pressed w-full p-4 text-white outline-none focus:ring-2 focus:ring-purple-500/50 transition-all color-scheme-dark" 
+                />
               </motion.div>
             )}
 
-            {/* PASSO 4: Fotos */}
             {step === 4 && (
-              <motion.div key="step4" variants={slideVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+              <motion.div key="step4" initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }} className="space-y-6">
                 <h2 className="text-2xl font-bold text-white mb-8">Adicione suas memórias</h2>
                 <div className="w-full h-48 neu-pressed border-2 border-dashed border-slate-700 flex flex-col items-center justify-center text-slate-400 hover:text-purple-400 hover:border-purple-500/50 transition-colors cursor-pointer">
                   <span className="mb-2 text-3xl">+</span>
@@ -150,16 +189,27 @@ export default function CriarPresente() {
           </AnimatePresence>
         </div>
 
-        {/* Botões de Navegação Inferiores */}
         <div className="flex gap-4 mt-8 pb-8">
           {step > 1 && (
-            <button onClick={prevStep} className="p-4 rounded-xl bg-slate-800 text-white neu-panel hover:bg-slate-700 transition-colors flex items-center justify-center">
+            <button 
+              disabled={isSubmitting}
+              onClick={prevStep} 
+              className="p-4 rounded-xl bg-slate-800 text-white neu-panel hover:bg-slate-700 transition-colors flex items-center justify-center disabled:opacity-50"
+            >
               <ArrowLeft size={20} />
             </button>
           )}
           
-          <button onClick={step === 4 ? () => console.log("Ir para pagamento") : nextStep} className="flex-1 py-4 rounded-xl bg-purple-500 text-slate-900 font-bold text-lg hover:bg-purple-400 transition-all glow-effect flex items-center justify-center gap-2">
-            {step === 4 ? "Finalizar" : "Continuar"} <ArrowRight size={20} />
+          <button 
+            disabled={isSubmitting}
+            onClick={step === 4 ? handleFinalizar : nextStep} 
+            className="flex-1 py-4 rounded-xl bg-purple-500 text-slate-900 font-bold text-lg hover:bg-purple-400 transition-all glow-effect flex items-center justify-center gap-2 disabled:opacity-70"
+          >
+            {isSubmitting ? (
+              <>Salvando... <Loader2 className="animate-spin" size={20} /></>
+            ) : (
+              <>{step === 4 ? "Finalizar" : "Continuar"} <ArrowRight size={20} /></>
+            )}
           </button>
         </div>
 

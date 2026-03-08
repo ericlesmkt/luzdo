@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Sem o NEXT_PUBLIC_, isso aqui só roda no lado do servidor!
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Cria a conexão única que vamos usar em todo o site
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabaseServer = createClient(supabaseUrl, supabaseKey);
