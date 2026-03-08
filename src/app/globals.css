@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+:root {
+  /* Fundo escuro profundo para dar destaque ao "Luzdo" (Glow) */
+  --background: #0f172a; /* Slate 900 */
+  --foreground: #f8fafc; /* Slate 50 */
+  
+  /* Roxo neon (Purple 500) para transmitir afeto, emoção e uma estética premium */
+  --primary-glow: #a855f7; 
+
+  /* Variáveis do Glasmorfismo (Vidro) */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  
+  /* Variáveis do Neumorfismo (Sombra e Relevo no fundo escuro) */
+  --neu-shadow: 8px 8px 16px #0a0f1c, -8px -8px 16px #141f38;
+  --neu-inset: inset 6px 6px 12px #0a0f1c, inset -6px -6px 12px #141f38;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Injetando nossas sombras personalizadas direto no Tailwind v4 */
+  --shadow-neu: var(--neu-shadow);
+  --shadow-neu-inner: var(--neu-inset);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Um gradiente radial sutil no fundo para não ficar um preto "chapado" */
+  background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 80%);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Criando classes utilitárias para usarmos rápido no Next.js */
+@layer utilities {
+  /* O efeito de Vidro Jateado (Perfeito para cards e modais) */
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.5rem;
+  }
+
+  /* O efeito de Relevo Neumórfico (Perfeito para botões e containers) */
+  .neu-panel {
+    background: var(--background);
+    box-shadow: var(--shadow-neu);
+    border-radius: 1.5rem;
+  }
+
+  /* O efeito de Botão Apertado ou Input de texto (Afundado) */
+  .neu-pressed {
+    background: var(--background);
+    box-shadow: var(--shadow-neu-inner);
+    border-radius: 1rem;
+  }
+
+  /* O efeito "Luzdo" (Glow sutil ao redor dos elementos - atualizado para roxo) */
+  .glow-effect {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+  }
+}
